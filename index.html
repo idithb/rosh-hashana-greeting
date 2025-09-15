@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>יוצר כרטיסי ברכה לראש השנה</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&family=Noto+Serif+Hebrew:wght@600&display=swap" rel="stylesheet">
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.sh/@google/genai@1.0.0"
+        }
+      }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>יוצר כרטיסי ברכה לראש השנה</h1>
+        <p>צרו כרטיס "שנה טובה" חגיגי עם תמונה אישית!</p>
+    </header>
+    <main id="app">
+        <div id="upload-view">
+            <div id="image-preview-container" class="hidden">
+                <img id="image-preview" src="#" alt="תצוגה מקדימה של התמונה שהועלתה" />
+            </div>
+            <label for="file-upload" class="upload-button">
+                <span id="upload-icon">🖼️</span>
+                <span id="upload-text">העלו תמונה</span>
+            </label>
+            <input id="file-upload" type="file" accept="image/*">
+
+            <div id="style-selection" class="hidden">
+                <h2>בחרו סגנון מסגרת:</h2>
+                <div class="style-options-container">
+                    <button class="style-option" data-style="childish">
+                        <h3>ילדותי</h3>
+                        <p>איורים צבעוניים וחמודים</p>
+                    </button>
+                    <button class="style-option" data-style="festive">
+                        <h3>חגיגי</h3>
+                        <p>מסגרת זהב יוקרתית, פרחים ורימונים</p>
+                    </button>
+                    <button class="style-option" data-style="natural">
+                        <h3>טבעי</h3>
+                        <p>עלים, פרחים ופירות בסגנון אורגני</p>
+                    </button>
+                    <button class="style-option" data-style="nostalgic">
+                        <h3>נוסטלגי</h3>
+                        <p>מראה גלויה ישנה, צבעי פסטל</p>
+                    </button>
+                </div>
+            </div>
+
+            <button id="generate-button" class="action-button hidden" disabled>צרו כרטיס ברכה</button>
+        </div>
+
+        <div id="loading-view" class="hidden">
+            <div class="spinner"></div>
+            <p>יוצרים את הברכה החגיגית שלכם...</p>
+        </div>
+
+        <div id="result-view" class="hidden">
+            <div class="card">
+                <img id="result-image" src="#" alt="כרטיס הברכה שנוצר" />
+                <p class="greeting-text">שנה טובה</p>
+            </div>
+            <div class="button-group">
+                <button id="download-button" class="action-button">הורדה</button>
+                <button id="reset-button" class="action-button secondary">התחילו מחדש</button>
+            </div>
+        </div>
+    </main>
+    <script type="module" src="index.tsx"></script>
+</body>
+</html>
