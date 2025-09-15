@@ -159,16 +159,66 @@ generateButton.addEventListener('click', async () => {
 });
 
 /**
- * Handles downloading the generated card.
+ * Handles downloading the generated card by composing the image and text on a canvas.
  */
 downloadButton.addEventListener('click', () => {
-    const link = document.createElement('a');
-    link.href = resultImage.src;
-    link.download = 'rosh-hashanah-card.png';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Create an in-memory image element to properly load the generated image
+    // This is crucial for drawing it onto the canvas without issues.
+    const image = new Image();
+    image.onload = () => {
+        // Create a canvas to compose the final image with text
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            alert("לא ניתן היה ליצור את התמונה להורדה.");
+            return;
+        }
+
+        // --- Define styling for the text ---
+        // These values are chosen to approximate the look from the CSS
+        const FONT_SIZE = Math.max(40, image.naturalWidth / 12); // Proportional font size
+        const BOTTOM_PADDING = FONT_SIZE * 1.5; // Padding below image for text
+        const FONT_FAMILY = '"Noto Serif Hebrew", serif';
+        const FONT_WEIGHT = '600';
+        const TEXT_COLOR = '#c0392b';
+        const GREETING = 'שנה טובה';
+
+        // --- Set canvas dimensions ---
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight + BOTTOM_PADDING;
+
+        // --- Draw the elements onto the canvas ---
+        // 1. Fill background with white
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 2. Draw the generated image
+        ctx.drawImage(image, 0, 0);
+
+        // 3. Configure and draw the text
+        ctx.font = `${FONT_WEIGHT} ${FONT_SIZE}px ${FONT_FAMILY}`;
+        ctx.fillStyle = TEXT_COLOR;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const textX = canvas.width / 2;
+        const textY = image.naturalHeight + (BOTTOM_PADDING / 2);
+        ctx.fillText(GREETING, textX, textY);
+
+        // --- Trigger download ---
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png'); // Convert canvas to a PNG image data URL
+        link.download = 'rosh-hashanah-card.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+    image.onerror = () => {
+        alert("שגיאה בטעינת התמונה להורדה.");
+    };
+    image.src = resultImage.src; // Start loading the image from the result view
 });
+
 
 /**
  * Resets the application to its initial state.
