@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 // --- State Variables ---
-let uploadedImageBase64: string | null = null;
+let uploadedImageBase64: string | null = null; 
 let uploadedImageType: string | null = null;
 let selectedStyle: string | null = null;
 
@@ -78,7 +78,8 @@ fileUpload.addEventListener('change', async (event) => {
     if (file) {
         try {
             uploadedImageType = file.type;
-            uploadedImageBase64 = await fileToBase64(file);
+            const base64 = await fileToBase64(file);
+            uploadedImageBase64 = base64; 
 
             imagePreview.src = `data:${uploadedImageType};base64,${uploadedImageBase64}`;
             imagePreviewContainer.classList.remove('hidden');
@@ -118,14 +119,13 @@ generateButton.addEventListener('click', async () => {
     showView('loading');
 
     const stylePrompts: { [key: string]: string } = {
-        childish: 'in a cute, colorful, and childish drawing style with fun illustrations',
-        festive: 'in a luxurious and festive style with elegant gold elements, flowers, and pomegranates',
-        natural: 'in a natural, organic style using leaves, flowers, and fruits',
-        nostalgic: 'with a nostalgic, vintage postcard look using pastel colors'
+        childish: 'Redraw the entire image in a cute, colorful, and childish illustration style. Then, add a matching decorative frame around it suitable for a Rosh Hashanah (Jewish New Year) greeting card. The subject of the original image must remain clearly recognizable. Do not add any text or letters.',
+        festive: 'Transform the entire image into a luxurious and festive renaissance-style painting. Then, add a matching elegant frame with gold elements, flowers, and pomegranates suitable for a Rosh Hashanah (Jewish New Year) greeting card. The subject of the original image must remain clearly recognizable. Do not add any text or letters.',
+        natural: 'Adjust the entire image to have bright, neutral, and natural colors, giving it a soft, airy feel. Then, add a matching organic frame made of leaves, flowers, and fruits suitable for a Rosh Hashanah (Jewish New Year) greeting card. The subject of the original image must remain clearly recognizable. Do not add any text or letters.',
+        nostalgic: 'Transform the entire image into a nostalgic, early 20th-century "Shana Tova" greeting postcard illustration. The style should be a hand-drawn illustration, not a photograph, on a light-colored, old paper or parchment textured background. Use a soft yet rich color palette of reds, pinks, purples, and light greens, with a slightly faded effect as if from an old print. Then, add a matching decorative frame incorporating classic "Shana Tova" motifs like flowers, doves, pomegranates, and apples. The subject of the original image must remain clearly recognizable, and the overall atmosphere should be innocent and sweet. Do not add any text or letters.'
     };
     
-    const specificPrompt = stylePrompts[selectedStyle] || 'in a festive style';
-    const basePrompt = `Create a beautiful, decorative frame around the provided image for the Jewish New Year (Rosh Hashanah). It is crucial that the original image remains completely unchanged. The frame should seamlessly integrate with the image ${specificPrompt}. Do not add any text, greetings, or letters to the image or the frame.`;
+    const prompt = stylePrompts[selectedStyle] || stylePrompts['festive'];
 
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -134,7 +134,7 @@ generateButton.addEventListener('click', async () => {
             contents: {
                 parts: [
                     { inlineData: { data: uploadedImageBase64, mimeType: uploadedImageType } },
-                    { text: basePrompt },
+                    { text: prompt },
                 ],
             },
             config: {
@@ -162,11 +162,8 @@ generateButton.addEventListener('click', async () => {
  * Handles downloading the generated card by composing the image and text on a canvas.
  */
 downloadButton.addEventListener('click', () => {
-    // Create an in-memory image element to properly load the generated image
-    // This is crucial for drawing it onto the canvas without issues.
     const image = new Image();
     image.onload = () => {
-        // Create a canvas to compose the final image with text
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) {
@@ -174,28 +171,20 @@ downloadButton.addEventListener('click', () => {
             return;
         }
 
-        // --- Define styling for the text ---
-        // These values are chosen to approximate the look from the CSS
-        const FONT_SIZE = Math.max(40, image.naturalWidth / 12); // Proportional font size
-        const BOTTOM_PADDING = FONT_SIZE * 1.5; // Padding below image for text
+        const FONT_SIZE = Math.max(40, image.naturalWidth / 12);
+        const BOTTOM_PADDING = FONT_SIZE * 1.5;
         const FONT_FAMILY = '"Noto Serif Hebrew", serif';
         const FONT_WEIGHT = '600';
         const TEXT_COLOR = '#c0392b';
         const GREETING = 'שנה טובה';
 
-        // --- Set canvas dimensions ---
         canvas.width = image.naturalWidth;
         canvas.height = image.naturalHeight + BOTTOM_PADDING;
 
-        // --- Draw the elements onto the canvas ---
-        // 1. Fill background with white
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 2. Draw the generated image
         ctx.drawImage(image, 0, 0);
 
-        // 3. Configure and draw the text
         ctx.font = `${FONT_WEIGHT} ${FONT_SIZE}px ${FONT_FAMILY}`;
         ctx.fillStyle = TEXT_COLOR;
         ctx.textAlign = 'center';
@@ -205,9 +194,8 @@ downloadButton.addEventListener('click', () => {
         const textY = image.naturalHeight + (BOTTOM_PADDING / 2);
         ctx.fillText(GREETING, textX, textY);
 
-        // --- Trigger download ---
         const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png'); // Convert canvas to a PNG image data URL
+        link.href = canvas.toDataURL('image/png');
         link.download = 'rosh-hashanah-card.png';
         document.body.appendChild(link);
         link.click();
@@ -216,7 +204,7 @@ downloadButton.addEventListener('click', () => {
     image.onerror = () => {
         alert("שגיאה בטעינת התמונה להורדה.");
     };
-    image.src = resultImage.src; // Start loading the image from the result view
+    image.src = resultImage.src;
 });
 
 
@@ -235,6 +223,7 @@ resetButton.addEventListener('click', () => {
     generateButton.classList.add('hidden');
     generateButton.disabled = true;
     uploadText.textContent = 'העלו תמונה';
+
     styleOptions.forEach(opt => opt.classList.remove('selected'));
     
     showView('upload');

@@ -26,33 +26,34 @@
     </header>
     <main id="app">
         <div id="upload-view">
-            <div id="image-preview-container" class="hidden">
-                <img id="image-preview" src="#" alt="תצוגה מקדימה של התמונה שהועלתה" />
-            </div>
             <label for="file-upload" class="upload-button">
                 <span id="upload-icon">🖼️</span>
                 <span id="upload-text">העלו תמונה</span>
             </label>
             <input id="file-upload" type="file" accept="image/*">
 
+            <div id="image-preview-container" class="hidden">
+                <img id="image-preview" src="#" alt="תצוגה מקדימה של התמונה שהועלתה" />
+            </div>
+
             <div id="style-selection" class="hidden">
-                <h2>בחרו סגנון מסגרת:</h2>
+                <h2>בחרו סגנון מסגרת ותמונה:</h2>
                 <div class="style-options-container">
                     <button class="style-option" data-style="childish">
                         <h3>ילדותי</h3>
-                        <p>איורים צבעוניים וחמודים</p>
+                        <p>התמונה תהפוך לאיור צבעוני וחמוד</p>
                     </button>
                     <button class="style-option" data-style="festive">
                         <h3>חגיגי</h3>
-                        <p>מסגרת זהב יוקרתית, פרחים ורימונים</p>
+                        <p>התמונה תראה כמו ציור רנסנס יוקרתי</p>
                     </button>
                     <button class="style-option" data-style="natural">
                         <h3>טבעי</h3>
-                        <p>עלים, פרחים ופירות בסגנון אורגני</p>
+                        <p>לתמונה יהיו צבעים בהירים ונייטרליים</p>
                     </button>
                     <button class="style-option" data-style="nostalgic">
                         <h3>נוסטלגי</h3>
-                        <p>מראה גלויה ישנה, צבעי פסטל</p>
+                        <p>התמונה תיראה כמו תצלום וינטג' ישן</p>
                     </button>
                 </div>
             </div>
