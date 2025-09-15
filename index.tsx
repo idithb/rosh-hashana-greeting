@@ -1,221 +1,194 @@
-/**
- * @license
- * Copyright 2025 Google LLC
- * SPDX-License-Identifier: Apache-2.0
- */
+import { GoogleGenAI } from "@google/genai";
 
-import { GoogleGenAI, Modality } from "@google/genai";
+// --- State Variables ---
+let uploadedImageBase64: string | null = null;
+let uploadedImageType: string | null = null;
+let selectedStyle: string | null = null;
 
 // --- DOM Element Selection ---
-const app = document.getElementById('app');
-const uploadView = document.getElementById('upload-view');
-const loadingView = document.getElementById('loading-view');
-const resultView = document.getElementById('result-view');
+const uploadView = document.getElementById('upload-view') as HTMLDivElement;
+const loadingView = document.getElementById('loading-view') as HTMLDivElement;
+const resultView = document.getElementById('result-view') as HTMLDivElement;
 
-const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-const imagePreviewContainer = document.getElementById('image-preview-container');
+const fileUpload = document.getElementById('file-upload') as HTMLInputElement;
+const imagePreviewContainer = document.getElementById('image-preview-container') as HTMLDivElement;
 const imagePreview = document.getElementById('image-preview') as HTMLImageElement;
-const uploadText = document.getElementById('upload-text');
+const uploadText = document.getElementById('upload-text') as HTMLSpanElement;
 
-const styleSelectionView = document.getElementById('style-selection');
-const styleOptionButtons = document.querySelectorAll('.style-option');
+const styleSelection = document.getElementById('style-selection') as HTMLDivElement;
+const styleOptions = document.querySelectorAll('.style-option') as NodeListOf<HTMLButtonElement>;
 
 const generateButton = document.getElementById('generate-button') as HTMLButtonElement;
 const downloadButton = document.getElementById('download-button') as HTMLButtonElement;
 const resetButton = document.getElementById('reset-button') as HTMLButtonElement;
 const resultImage = document.getElementById('result-image') as HTMLImageElement;
 
-// --- State Management ---
-let uploadedFile: { base64: string, mimeType: string } | null = null;
-let generatedImageBase64: string | null = null;
-let selectedStyle: string | null = null;
+// --- Helper Functions ---
 
-// --- Prompts for Different Styles ---
-const stylePrompts: { [key: string]: string } = {
-  childish: "The frame should have a childish style with colorful illustrations, smiling apples, bees, and other cute elements.",
-  festive: "The frame should have a luxurious and festive design with a luxurious gold frame, flowers, and pomegranates.",
-  natural: "The frame should have an organic, natural style with leaves, flowers, wheat, pomegranates, and apples.",
-  nostalgic: "The frame should look like an old postcard, with pastel colors, paper textures, and a warm vintage feel."
+/**
+ * Shows a specific view ('upload', 'loading', or 'result') and hides the others.
+ */
+const showView = (viewToShow: 'upload' | 'loading' | 'result') => {
+    uploadView.classList.add('hidden');
+    loadingView.classList.add('hidden');
+    resultView.classList.add('hidden');
+
+    const viewMap = {
+        upload: uploadView,
+        loading: loadingView,
+        result: resultView,
+    };
+    viewMap[viewToShow]?.classList.remove('hidden');
 };
 
-// --- Main Application Logic ---
-try {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+/**
+ * Enables or disables the 'Generate' button based on whether an image and style are selected.
+ */
+const updateGenerateButtonState = () => {
+    generateButton.disabled = !(uploadedImageBase64 && selectedStyle);
+};
 
-  /**
-   * Converts a file to a base64 encoded string.
-   */
-  async function fileToGenerativePart(file: File): Promise<{ base64: string, mimeType: string }> {
+/**
+ * Converts a File object to a Base64 encoded string, stripping the data URL prefix.
+ */
+const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = (reader.result as string).split(',')[1];
-        resolve({ base64, mimeType: file.type });
-      };
-      reader.onerror = (err) => reject(err);
-      reader.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            if (typeof reader.result === 'string') {
+                resolve(reader.result.split(',')[1]);
+            } else {
+                reject(new Error('Failed to read file as Base64 string.'));
+            }
+        };
+        reader.onerror = error => reject(error);
     });
-  }
+};
 
-  /**
-   * Updates the enabled/disabled state of the generate button.
-   */
-  function updateGenerateButtonState() {
-      if (uploadedFile && selectedStyle) {
-          generateButton.disabled = false;
-      } else {
-          generateButton.disabled = true;
-      }
-  }
+// --- Event Listener Setup ---
 
-  /**
-   * Handles the file input change event.
-   */
-  async function handleFileChange() {
-    const file = fileInput.files?.[0];
+/**
+ * Handles file selection: reads the file, updates the preview, and reveals next steps.
+ */
+fileUpload.addEventListener('change', async (event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+
     if (file) {
-      uploadedFile = await fileToGenerativePart(file);
-      imagePreview.src = `data:${uploadedFile.mimeType};base64,${uploadedFile.base64}`;
-      if (imagePreviewContainer && uploadText && styleSelectionView) {
-        imagePreviewContainer.classList.remove('hidden');
-        uploadText.textContent = "החליפו תמונה";
-        styleSelectionView.classList.remove('hidden');
-      }
-      generateButton.classList.remove('hidden');
-      updateGenerateButtonState();
+        try {
+            uploadedImageType = file.type;
+            uploadedImageBase64 = await fileToBase64(file);
+
+            imagePreview.src = `data:${uploadedImageType};base64,${uploadedImageBase64}`;
+            imagePreviewContainer.classList.remove('hidden');
+            styleSelection.classList.remove('hidden');
+            generateButton.classList.remove('hidden');
+            uploadText.textContent = 'החליפו תמונה';
+
+            updateGenerateButtonState();
+        } catch (error) {
+            console.error("Error processing file:", error);
+            alert("שגיאה בעיבוד התמונה. אנא נסו קובץ אחר.");
+        }
     }
-  }
+});
 
-  /**
-   * Handles the selection of a frame style.
-   */
-  function handleStyleSelect(event: Event) {
-    const target = event.currentTarget as HTMLButtonElement;
-    selectedStyle = target.dataset.style || null;
+/**
+ * Handles style selection: updates UI to show selection and updates internal state.
+ */
+styleOptions.forEach(button => {
+    button.addEventListener('click', () => {
+        styleOptions.forEach(opt => opt.classList.remove('selected'));
+        button.classList.add('selected');
+        selectedStyle = button.dataset.style || null;
+        updateGenerateButtonState();
+    });
+});
 
-    // Update button styles
-    styleOptionButtons.forEach(btn => btn.classList.remove('selected'));
-    target.classList.add('selected');
-
-    updateGenerateButtonState();
-  }
-
-  /**
-   * Calls the Gemini API to generate the framed image.
-   */
-  async function generateGreetingCard() {
-    if (!uploadedFile) {
-      alert("אנא העלו תמונה תחילה.");
-      return;
-    }
-    if (!selectedStyle) {
-        alert("אנא בחרו סגנון מסגרת.");
+/**
+ * Handles the main generation logic on button click.
+ */
+generateButton.addEventListener('click', async () => {
+    if (!uploadedImageBase64 || !selectedStyle || !uploadedImageType) {
+        alert("אנא העלו תמונה ובחרו סגנון מסגרת.");
         return;
     }
 
-    // Switch to loading view
-    if (uploadView) uploadView.style.display = 'none';
-    loadingView?.classList.remove('hidden');
+    showView('loading');
+
+    const stylePrompts: { [key: string]: string } = {
+        childish: 'in a cute, colorful, and childish drawing style with fun illustrations',
+        festive: 'in a luxurious and festive style with elegant gold elements, flowers, and pomegranates',
+        natural: 'in a natural, organic style using leaves, flowers, and fruits',
+        nostalgic: 'with a nostalgic, vintage postcard look using pastel colors'
+    };
+    
+    const specificPrompt = stylePrompts[selectedStyle] || 'in a festive style';
+    const basePrompt = `Create a beautiful, decorative frame around the provided image for the Jewish New Year (Rosh Hashanah). It is crucial that the original image remains completely unchanged. The frame should seamlessly integrate with the image ${specificPrompt}. Do not add any text, greetings, or letters to the image or the frame.`;
 
     try {
-      const basePrompt = "Place this image inside a festive frame for the Jewish New Year (Rosh Hashanah). The frame should not contain any text or words.";
-      const stylePrompt = stylePrompts[selectedStyle] || stylePrompts['festive'];
-      const fullPrompt = `${basePrompt} ${stylePrompt}`;
-      
-      const imagePart = {
-        inlineData: {
-          data: uploadedFile.base64,
-          mimeType: uploadedFile.mimeType,
-        },
-      };
-      const textPart = { text: fullPrompt };
-
-      const result = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image-preview',
-        contents: { parts: [imagePart, textPart] },
-        config: {
-          responseModalities: [Modality.IMAGE, Modality.TEXT],
-        },
-      });
-
-      // FIX: The result from generateContent is the response object.
-      // Do not access a nested `response` property.
-      const imageOutput = result.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
-      
-      if (imageOutput && imageOutput.inlineData) {
-        generatedImageBase64 = `data:${imageOutput.inlineData.mimeType};base64,${imageOutput.inlineData.data}`;
-        resultImage.src = generatedImageBase64;
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data: uploadedImageBase64, mimeType: uploadedImageType } },
+                    { text: basePrompt },
+                ],
+            },
+            config: {
+                responseModalities: ["IMAGE", "TEXT"],
+            },
+        });
         
-        // Switch to result view
-        loadingView?.classList.add('hidden');
-        resultView?.classList.remove('hidden');
-      } else {
-        // The API might have returned only text (e.g., a safety refusal).
-        const errorText = result.text;
-        console.error("API did not return an image. Response text:", errorText);
-        alert("המודל לא הצליח ליצור תמונה. נסו תמונה אחרת או סגנון אחר.");
-        resetApp();
-      }
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
 
-    } catch (error) {
-      console.error("Error generating image:", error);
-      alert("אירעה שגיאה בעת יצירת כרטיס הברכה. אנא בדקו את המסוף ונסו שוב.");
-      resetApp(); // Reset on error
+        if (imagePart?.inlineData) {
+            const { data, mimeType } = imagePart.inlineData;
+            resultImage.src = `data:${mimeType};base64,${data}`;
+            showView('result');
+        } else {
+            throw new Error("לא התקבלה תמונה מהמודל. ייתכן שהבקשה נדחתה. נסו שוב.");
+        }
+    } catch (error: any) {
+        console.error("Error generating image:", error);
+        alert(`שגיאה ביצירת התמונה:\n${error.message || 'אירעה שגיאה לא צפויה.'}`);
+        showView('upload');
     }
-  }
+});
 
-  /**
-   * Handles the download button click.
-   */
-  function handleDownload() {
-    if (generatedImageBase64) {
-      const link = document.createElement('a');
-      link.href = generatedImageBase64;
-      link.download = 'shana-tova-card.png';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  }
+/**
+ * Handles downloading the generated card.
+ */
+downloadButton.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.href = resultImage.src;
+    link.download = 'rosh-hashanah-card.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+});
 
-  /**
-   * Resets the application to its initial state.
-   */
-  function resetApp() {
-    uploadedFile = null;
-    generatedImageBase64 = null;
+/**
+ * Resets the application to its initial state.
+ */
+resetButton.addEventListener('click', () => {
+    uploadedImageBase64 = null;
+    uploadedImageType = null;
     selectedStyle = null;
-    fileInput.value = '';
 
-    if (imagePreviewContainer && uploadText && styleSelectionView) {
-      imagePreviewContainer.classList.add('hidden');
-      uploadText.textContent = "העלו תמונה";
-      styleSelectionView.classList.add('hidden');
-    }
-
-    // Reset style buttons
-    styleOptionButtons.forEach(btn => btn.classList.remove('selected'));
-
+    fileUpload.value = '';
+    imagePreview.src = '#';
+    imagePreviewContainer.classList.add('hidden');
+    styleSelection.classList.add('hidden');
     generateButton.classList.add('hidden');
     generateButton.disabled = true;
+    uploadText.textContent = 'העלו תמונה';
+    styleOptions.forEach(opt => opt.classList.remove('selected'));
+    
+    showView('upload');
+});
 
-    resultView?.classList.add('hidden');
-    if (uploadView) uploadView.style.display = 'flex';
-    loadingView?.classList.add('hidden');
-  }
-
-  // --- Event Listeners ---
-  fileInput.addEventListener('change', handleFileChange);
-  styleOptionButtons.forEach(button => {
-    button.addEventListener('click', handleStyleSelect);
-  });
-  generateButton.addEventListener('click', generateGreetingCard);
-  downloadButton.addEventListener('click', handleDownload);
-  resetButton.addEventListener('click', resetApp);
-
-} catch (error) {
-  console.error("Failed to initialize the application:", error);
-  if (app) {
-    app.innerHTML = `<p style="color: red; text-align: center;">Error: Could not initialize the application. Please ensure your API key is set correctly and check the console for details.</p>`;
-  }
-}
+// --- Initial Application State ---
+showView('upload');
