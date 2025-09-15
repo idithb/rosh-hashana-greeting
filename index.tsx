@@ -130,7 +130,7 @@ try {
       };
       const textPart = { text: fullPrompt };
 
-      const response = await ai.models.generateContent({
+      const result = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image-preview',
         contents: { parts: [imagePart, textPart] },
         config: {
@@ -138,7 +138,9 @@ try {
         },
       });
 
-      const imageOutput = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
+      // FIX: The result from generateContent is the response object.
+      // Do not access a nested `response` property.
+      const imageOutput = result.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
       
       if (imageOutput && imageOutput.inlineData) {
         generatedImageBase64 = `data:${imageOutput.inlineData.mimeType};base64,${imageOutput.inlineData.data}`;
@@ -148,7 +150,11 @@ try {
         loadingView?.classList.add('hidden');
         resultView?.classList.remove('hidden');
       } else {
-        throw new Error("API did not return an image. Please try again.");
+        // The API might have returned only text (e.g., a safety refusal).
+        const errorText = result.text;
+        console.error("API did not return an image. Response text:", errorText);
+        alert("המודל לא הצליח ליצור תמונה. נסו תמונה אחרת או סגנון אחר.");
+        resetApp();
       }
 
     } catch (error) {
