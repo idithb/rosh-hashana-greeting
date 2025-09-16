@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 
 // --- State Variables ---
 let uploadedImageBase64: string | null = null; 
@@ -138,7 +138,7 @@ generateButton.addEventListener('click', async () => {
                 ],
             },
             config: {
-                responseModalities: ["IMAGE", "TEXT"],
+                responseModalities: [Modality.IMAGE, Modality.TEXT],
             },
         });
         
@@ -163,6 +163,7 @@ generateButton.addEventListener('click', async () => {
  */
 downloadButton.addEventListener('click', () => {
     const image = new Image();
+    image.crossOrigin = "Anonymous"; // Prevent canvas tainting
     image.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
