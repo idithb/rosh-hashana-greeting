@@ -165,7 +165,6 @@ generateButton.addEventListener('click', async () => {
  */
 downloadButton.addEventListener('click', () => {
     const image = new Image();
-    image.crossOrigin = "Anonymous"; // Prevent canvas tainting
     image.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
